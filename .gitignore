@@ -1,0 +1,11 @@
+_ReSharper*
+*.suo
+OCR/bin
+OCR/obj
+ConvolutionalNeuralNetwork/bin
+ConvolutionalNeuralNetwork/obj
+ConvolutionalNeuralNetworkTest/bin
+ConvolutionalNeuralNetworkTest/obj
+~$*.docx
+*.user
+*.tmp
