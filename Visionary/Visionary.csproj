@@ -8,8 +8,8 @@
     <ProjectGuid>{C89BFF45-41F8-41A2-ACC2-53415370680C}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>OCR</RootNamespace>
-    <AssemblyName>OCR</AssemblyName>
+    <RootNamespace>Visionary</RootNamespace>
+    <AssemblyName>Visionary</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -85,6 +85,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="..\..\Nebulous.snk">
       <Link>Nebulous.snk</Link>

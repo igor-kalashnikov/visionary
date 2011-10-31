@@ -1,7 +1,7 @@
 _ReSharper*
 *.suo
-OCR/bin
-OCR/obj
+Visionary/bin
+Visionary/obj
 ConvolutionalNeuralNetwork/bin
 ConvolutionalNeuralNetwork/obj
 ConvolutionalNeuralNetworkTest/bin

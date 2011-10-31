@@ -8,8 +8,8 @@
     <ProjectGuid>{59C9C44A-C6A4-4264-98DD-CA2823C53B7A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ConvolutionalNeuralNetwork</RootNamespace>
-    <AssemblyName>ConvolutionalNeuralNetwork</AssemblyName>
+    <RootNamespace>Visionary.ConvolutionalNeuralNetwork</RootNamespace>
+    <AssemblyName>Visionary.ConvolutionalNeuralNetwork</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
