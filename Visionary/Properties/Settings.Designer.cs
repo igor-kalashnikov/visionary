@@ -22,5 +22,293 @@ namespace Visionary.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2049")]
+        public global::System.Int32 m_nMagicTrainingLabels {
+            get {
+                return ((global::System.Int32)(this["m_nMagicTrainingLabels"]));
+            }
+            set {
+                this["m_nMagicTrainingLabels"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2051")]
+        public global::System.Int32 m_nMagicTrainingImages {
+            get {
+                return ((global::System.Int32)(this["m_nMagicTrainingImages"]));
+            }
+            set {
+                this["m_nMagicTrainingImages"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60000")]
+        public global::System.Int32 m_nItemsTrainingLabels {
+            get {
+                return ((global::System.Int32)(this["m_nItemsTrainingLabels"]));
+            }
+            set {
+                this["m_nItemsTrainingLabels"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60000")]
+        public global::System.Int32 m_nItemsTrainingImages {
+            get {
+                return ((global::System.Int32)(this["m_nItemsTrainingImages"]));
+            }
+            set {
+                this["m_nItemsTrainingImages"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2049")]
+        public global::System.Int32 m_nMagicTestingLabels {
+            get {
+                return ((global::System.Int32)(this["m_nMagicTestingLabels"]));
+            }
+            set {
+                this["m_nMagicTestingLabels"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2051")]
+        public global::System.Int32 m_nMagicTestingImages {
+            get {
+                return ((global::System.Int32)(this["m_nMagicTestingImages"]));
+            }
+            set {
+                this["m_nMagicTestingImages"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10000")]
+        public global::System.Int32 m_nItemsTestingLabels {
+            get {
+                return ((global::System.Int32)(this["m_nItemsTestingLabels"]));
+            }
+            set {
+                this["m_nItemsTestingLabels"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10000")]
+        public float m_nItemsTestingImages {
+            get {
+                return ((float)(this["m_nItemsTestingImages"]));
+            }
+            set {
+                this["m_nItemsTestingImages"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("28")]
+        public global::System.Int32 m_nRowsImages {
+            get {
+                return ((global::System.Int32)(this["m_nRowsImages"]));
+            }
+            set {
+                this["m_nRowsImages"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("28")]
+        public global::System.Int32 m_nColsImages {
+            get {
+                return ((global::System.Int32)(this["m_nColsImages"]));
+            }
+            set {
+                this["m_nColsImages"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5")]
+        public global::System.Int32 m_nMagWindowSize {
+            get {
+                return ((global::System.Int32)(this["m_nMagWindowSize"]));
+            }
+            set {
+                this["m_nMagWindowSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("8")]
+        public global::System.Int32 m_nMagWindowMagnification {
+            get {
+                return ((global::System.Int32)(this["m_nMagWindowMagnification"]));
+            }
+            set {
+                this["m_nMagWindowMagnification"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.001")]
+        public double m_dInitialEtaLearningRate {
+            get {
+                return ((double)(this["m_dInitialEtaLearningRate"]));
+            }
+            set {
+                this["m_dInitialEtaLearningRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.794328235")]
+        public double m_dLearningRateDecay {
+            get {
+                return ((double)(this["m_dLearningRateDecay"]));
+            }
+            set {
+                this["m_dLearningRateDecay"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1E-05")]
+        public double m_dMinimumEtaLearningRate {
+            get {
+                return ((double)(this["m_dMinimumEtaLearningRate"]));
+            }
+            set {
+                this["m_dMinimumEtaLearningRate"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60000")]
+        public global::System.Int32 m_nAfterEveryNBackprops {
+            get {
+                return ((global::System.Int32)(this["m_nAfterEveryNBackprops"]));
+            }
+            set {
+                this["m_nAfterEveryNBackprops"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public global::System.Int32 m_cNumBackpropThreads {
+            get {
+                return ((global::System.Int32)(this["m_cNumBackpropThreads"]));
+            }
+            set {
+                this["m_cNumBackpropThreads"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public global::System.Int32 m_cNumTestingThreads {
+            get {
+                return ((global::System.Int32)(this["m_cNumTestingThreads"]));
+            }
+            set {
+                this["m_cNumTestingThreads"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("15")]
+        public double m_dMaxScaling {
+            get {
+                return ((double)(this["m_dMaxScaling"]));
+            }
+            set {
+                this["m_dMaxScaling"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("15")]
+        public double m_dMaxRotation {
+            get {
+                return ((double)(this["m_dMaxRotation"]));
+            }
+            set {
+                this["m_dMaxRotation"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("8")]
+        public double m_dElasticSigma {
+            get {
+                return ((double)(this["m_dElasticSigma"]));
+            }
+            set {
+                this["m_dElasticSigma"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
+        public double m_dElasticScaling {
+            get {
+                return ((double)(this["m_dElasticScaling"]));
+            }
+            set {
+                this["m_dElasticScaling"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.1")]
+        public double m_dMicronLimitParameter {
+            get {
+                return ((double)(this["m_dMicronLimitParameter"]));
+            }
+            set {
+                this["m_dMicronLimitParameter"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("500")]
+        public global::System.Int32 m_nNumHessianPatterns {
+            get {
+                return ((global::System.Int32)(this["m_nNumHessianPatterns"]));
+            }
+            set {
+                this["m_nNumHessianPatterns"] = value;
+            }
+        }
     }
 }

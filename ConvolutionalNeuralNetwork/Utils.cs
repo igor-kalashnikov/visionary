@@ -13,5 +13,17 @@ namespace Visionary.ConvolutionalNeuralNetwork
         {
             return 0.66666667 / 1.7159 * (1.7159 + x) * (1.7159 - x);
         }
+
+        public static double UNIFORM_PLUS_MINUS_ONE()
+        {
+            Random random = new Random();
+            return random.NextDouble() * 2 - 1;
+        }
+
+        public static double UNIFORM_ZERO_THRU_ONE()
+        {
+            Random random = new Random();
+            return random.NextDouble();
+        }
     }
 }

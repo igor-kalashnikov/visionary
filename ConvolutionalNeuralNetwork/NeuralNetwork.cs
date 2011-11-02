@@ -5,8 +5,8 @@
 
     public class NeuralNetwork
     {
-        double m_etaLearningRatePrevious;
-        double m_etaLearningRate;
+        public double m_etaLearningRatePrevious;
+        public double m_etaLearningRate;
 
         private List<Layer> m_Layers = new List<Layer>();
 
@@ -33,7 +33,7 @@
             }
         }
 
-        void Calculate(double[] inputVector, uint iCount,
+        public void Calculate(double[] inputVector, uint iCount,
             double[] outputVector = null, uint oCount = 0,
             List<List<double>> pNeuronOutputs = null)
         {
@@ -97,7 +97,7 @@
             }
         }
 
-        void Backpropagate(double[] actualOutput, double[] desiredOutput, uint count,
+        public void Backpropagate(double[] actualOutput, double[] desiredOutput, uint count,
             List<List<double>> pMemorizedNeuronOutputs)
         {
             if (actualOutput == null || desiredOutput == null || count >= 256)
@@ -151,7 +151,7 @@
             differentials.Clear();
         }
 
-        void EraseHessianInformation()
+        public void EraseHessianInformation()
         {
             // controls each layer to erase (set to value of zero) all its diagonal Hessian info
             foreach (var layer in m_Layers)
@@ -160,7 +160,7 @@
             }
         }
 
-        void DivideHessianInformationBy(double divisor)
+        public void DivideHessianInformationBy(double divisor)
         {
             foreach (var layer in m_Layers)
             {
