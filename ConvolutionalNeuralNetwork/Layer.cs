@@ -233,9 +233,9 @@ namespace Visionary.ConvolutionalNeuralNetwork
 			m_pPrevLayer = pPrev;
 		}
 
-		public List<Weight> m_Weights = new List<Weight>();
+        private List<Weight> m_Weights = new List<Weight>();
 
-		public List<Neuron> m_Neurons = new List<Neuron>();
+        private List<Neuron> m_Neurons = new List<Neuron>();
 
 		public string label = String.Empty;
 
@@ -249,5 +249,29 @@ namespace Visionary.ConvolutionalNeuralNetwork
 			m_Neurons.Clear();
 			m_bFloatingPointWarning = false;
 		}
+
+        public List<Neuron> Neurons
+        {
+            get
+            {
+                return this.m_Neurons;
+            }
+            set
+            {
+                this.m_Neurons = value;
+            }
+        }
+
+        public List<Weight> Weights
+        {
+            get
+            {
+                return this.m_Weights;
+            }
+            set
+            {
+                this.m_Weights = value;
+            }
+        }
 	}
 }

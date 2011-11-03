@@ -5,8 +5,9 @@
 
     public class NeuralNetwork
     {
-        public double m_etaLearningRatePrevious;
-        public double m_etaLearningRate;
+        private double m_etaLearningRatePrevious;
+
+        private double m_etaLearningRate;
 
         private List<Layer> m_Layers = new List<Layer>();
 
@@ -20,6 +21,30 @@
             set
             {
                 m_Layers = value;
+            }
+        }
+
+        public double EtaLearningRatePrevious
+        {
+            get
+            {
+                return this.m_etaLearningRatePrevious;
+            }
+            set
+            {
+                this.m_etaLearningRatePrevious = value;
+            }
+        }
+
+        public double EtaLearningRate
+        {
+            get
+            {
+                return this.m_etaLearningRate;
+            }
+            set
+            {
+                this.m_etaLearningRate = value;
             }
         }
 
@@ -38,7 +63,7 @@
             List<List<double>> pNeuronOutputs = null)
         {
             int count = 0;
-            foreach (var neuron in m_Layers[0].m_Neurons)
+            foreach (var neuron in this.m_Layers[0].Neurons)
             {
                 if (count < iCount)
                 {
@@ -57,7 +82,7 @@
             if (outputVector != null)
             {
                 int ii = 0;
-                foreach (var neuron in m_Layers[m_Layers.Count - 1].m_Neurons)
+                foreach (var neuron in this.m_Layers[this.m_Layers.Count - 1].Neurons)
                 {
                     if (ii < oCount)
                     {
@@ -76,7 +101,7 @@
                 {
                     // it's empty, so allocate memory for its use
                     pNeuronOutputs.Clear();  // for safekeeping
-                    pNeuronOutputs.AddRange(this.m_Layers.Select(layer => layer.m_Neurons.Select(neuron => neuron.output).ToList()));
+                    pNeuronOutputs.AddRange(this.m_Layers.Select(layer => layer.Neurons.Select(neuron => neuron.output).ToList()));
                 }
                 else
                 {
@@ -86,7 +111,7 @@
                     int ii = 0, jj = 0;
                     foreach (var layer in m_Layers)
                     {
-                        foreach (var neuron in layer.m_Neurons)
+                        foreach (var neuron in layer.Neurons)
                         {
                             pNeuronOutputs[jj][ii] = neuron.output;
                             ++ii;
@@ -112,13 +137,13 @@
                 PeriodicWeightSanityCheck();
             }
 
-            List<double> dErr_wrt_dXlast = new List<double>(m_Layers[m_Layers.Count - 1].m_Neurons.Count());
+            List<double> dErr_wrt_dXlast = new List<double>(this.m_Layers[this.m_Layers.Count - 1].Neurons.Count());
             List<List<double>> differentials = new List<List<double>>(m_Layers.Count);
 
             int iSize = m_Layers.Count;
             int ii;
 
-            for (ii = 0; ii < m_Layers[m_Layers.Count - 1].m_Neurons.Count; ++ii)
+            for (ii = 0; ii < this.m_Layers[this.m_Layers.Count - 1].Neurons.Count; ++ii)
             {
                 dErr_wrt_dXlast[ii] = actualOutput[ii] - desiredOutput[ii];
             }
@@ -127,7 +152,7 @@
 
             for (ii = 0; ii < iSize - 1; ++ii)
             {
-                differentials[ii].Capacity = m_Layers[ii].m_Neurons.Count();
+                differentials[ii].Capacity = this.m_Layers[ii].Neurons.Count();
             }
 
             bool bMemorized = (pMemorizedNeuronOutputs != null);
@@ -175,14 +200,14 @@
                 return;
             }
 
-            List<double> d2Err_wrt_dXlast = new List<double>(m_Layers[m_Layers.Count - 1].m_Neurons.Count);
+            List<double> d2Err_wrt_dXlast = new List<double>(this.m_Layers[this.m_Layers.Count - 1].Neurons.Count);
             List<List<double>> differentials = new List<List<double>>(m_Layers.Count);
 
             int iSize = m_Layers.Count;
 
             int ii;
 
-            for (ii = 0; ii < m_Layers[m_Layers.Count - 1].m_Neurons.Count; ++ii)
+            for (ii = 0; ii < this.m_Layers[this.m_Layers.Count - 1].Neurons.Count; ++ii)
             {
                 d2Err_wrt_dXlast[ii] = 1.0;
             }
@@ -191,7 +216,7 @@
 
             for (ii = 0; ii < iSize - 1; ++ii)
             {
-                differentials[ii].Capacity = m_Layers[ii].m_Neurons.Count;
+                differentials[ii].Capacity = this.m_Layers[ii].Neurons.Count;
             }
 
             ii = iSize - 1;
@@ -212,7 +237,7 @@
 
         }
 
-        void Initialize()
+        public void Initialize()
         {
             m_Layers.Clear();
 

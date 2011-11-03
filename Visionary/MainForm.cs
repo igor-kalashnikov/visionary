@@ -53,6 +53,24 @@ namespace Visionary
 
         private int m_cCount;
 
+        private object m_bFilesOpen;
+
+        private bool m_bTestingThreadsAreRunning;
+
+        private bool m_bTestingThreadAbortFlag;
+
+        private int m_iNextTestingPattern;
+
+        private int m_iNumTestingThreadsRunning;
+
+        private int m_iTestingThreadIdentifier;
+
+        private decimal m_iWhichImageSet;
+
+        private bool m_bDistortTestingPatterns;
+
+        private Thread[] m_pTestingThreads = new Thread[100];
+
         const uint g_cImageSize = 28;
         const uint g_cVectorSize = 29;
 
@@ -60,6 +78,302 @@ namespace Visionary
         public MainForm()
         {
             InitializeComponent();
+            Init();
+            InitNeuralNetwork();
+        }
+
+        private void Init()
+        {
+            // TODO: add one-time construction code here
+
+            m_bFilesOpen = false;
+            m_bBackpropThreadAbortFlag = false;
+            m_bBackpropThreadsAreRunning = false;
+            m_cBackprops = 0;
+            m_nAfterEveryNBackprops = 1;
+
+            m_bTestingThreadsAreRunning = false;
+            m_bTestingThreadAbortFlag = false;
+
+            m_iNextTestingPattern = 0;
+            m_iNextTrainingPattern = 0;
+
+            //::InitializeCriticalSection( &m_csTrainingPatterns );
+            //::InitializeCriticalSection( &m_csTestingPatterns );
+
+            //m_utxNeuralNet = ::CreateMutex( null, false, null );  // anonymous mutex which is unowned initially
+
+
+            // allocate memory to store the distortion maps
+
+            m_cCols = 29;
+            m_cRows = 29;
+
+            m_cCount = m_cCols * m_cRows;
+
+            m_DispH = new double[m_cCount];
+            m_DispV = new double[m_cCount];
+
+
+            // create a gaussian kernel, which is constant, for use in generating elastic distortions
+
+            int iiMid = GAUSSIAN_FIELD_SIZE / 2;  // GAUSSIAN_FIELD_SIZE is strictly odd
+
+            double twoSigmaSquared = 2.0 * Settings.Default.m_dElasticSigma * Settings.Default.m_dElasticSigma;
+            twoSigmaSquared = 1.0 / twoSigmaSquared;
+            double twoPiSigma = 1.0 / Settings.Default.m_dElasticSigma
+                                * Math.Sqrt(2.0 * 3.1415926535897932384626433832795);
+
+            for (int col = 0; col < GAUSSIAN_FIELD_SIZE; ++col)
+            {
+                for (int row = 0; row < GAUSSIAN_FIELD_SIZE; ++row)
+                {
+                    m_GaussianKernel[row, col] = twoPiSigma
+                                         *
+                                         Math.Exp(
+                                             -(((row - iiMid) * (row - iiMid) + (col - iiMid) * (col - iiMid))
+                                                * twoSigmaSquared));
+                }
+            }
+        }
+
+        private void InitNeuralNetwork()
+        {
+            // TODO: add reinitialization code here
+            // (SDI documents will reuse this document)
+
+            // grab the mutex for the neural network
+
+            //CAutoMutex tlo( m_utxNeuralNet );
+
+            // initialize and build the neural net
+
+            NeuralNetwork NN = m_NN; // for easier nomenclature
+            NN.Initialize();
+
+            Layer pLayer = new Layer();
+
+            int ii, jj, kk;
+            int icNeurons = 0;
+            int icWeights = 0;
+            double initWeight;
+            string label;
+
+            // layer zero, the input layer.
+            // Create neurons: exactly the same number of neurons as the input
+            // vector of 29x29=841 pixels, and no weights/connections
+
+            pLayer = new Layer("Layer00");
+            NN.Layers.Add(pLayer);
+
+            for (ii = 0; ii < 841; ++ii)
+            {
+                label = String.Format("Layer00_Neuron%04d_Num%06d", ii, icNeurons);
+                pLayer.Neurons.Add(new Neuron(label));
+                icNeurons++;
+            }
+
+            // layer one:
+            // This layer is a convolutional layer that has 6 feature maps.  Each feature 
+            // map is 13x13, and each unit in the feature maps is a 5x5 convolutional kernel
+            // of the input layer.
+            // So, there are 13x13x6 = 1014 neurons, (5x5+1)x6 = 156 weights
+            pLayer = new Layer("Layer01", pLayer);
+            NN.Layers.Add(pLayer);
+
+            for (ii = 0; ii < 1014; ++ii)
+            {
+                label = String.Format("Layer01_Neuron%04d_Num%06d", ii, icNeurons);
+                pLayer.Neurons.Add(new Neuron(label));
+                icNeurons++;
+            }
+
+            for (ii = 0; ii < 156; ++ii)
+            {
+                label = String.Format("Layer01_Weight%04d_Num%06d", ii, icWeights);
+                initWeight = 0.05 * Utils.UNIFORM_PLUS_MINUS_ONE();
+                pLayer.Weights.Add(new Weight(label, initWeight));
+            }
+
+            // interconnections with previous layer: this is difficult
+            // The previous layer is a top-down bitmap image that has been padded to size 29x29
+            // Each neuron in this layer is connected to a 5x5 kernel in its feature map, which 
+            // is also a top-down bitmap of size 13x13.  We move the kernel by TWO pixels, i.e., we
+            // skip every other pixel in the input image
+            int[] kernelTemplate = new int[25]
+                {
+                    0, 1, 2, 3, 4, 
+                    29, 30, 31, 32, 33, 
+                    58, 59, 60, 61, 62, 
+                    87, 88, 89, 90, 91, 
+                    116, 117, 118, 119, 120 
+                };
+
+            int iNumWeight;
+
+            int fm;
+
+            for (fm = 0; fm < 6; ++fm)
+            {
+                for (ii = 0; ii < 13; ++ii)
+                {
+                    for (jj = 0; jj < 13; ++jj)
+                    {
+                        iNumWeight = fm * 26; // 26 is the number of weights per feature map
+                        Neuron n = pLayer.Neurons[jj + ii * 13 + fm * 169];
+
+                        n.AddConnection(UInt32.MaxValue, (uint)iNumWeight++); // bias weight
+
+                        for (kk = 0; kk < 25; ++kk)
+                        {
+                            // note: max val of index == 840, corresponding to 841 neurons in prev layer
+                            n.AddConnection((uint)(2 * jj + 58 * ii + kernelTemplate[kk]), (uint)iNumWeight++);
+                        }
+                    }
+                }
+            }
+
+            // layer two:
+            // This layer is a convolutional layer that has 50 feature maps.  Each feature 
+            // map is 5x5, and each unit in the feature maps is a 5x5 convolutional kernel
+            // of corresponding areas of all 6 of the previous layers, each of which is a 13x13 feature map
+            // So, there are 5x5x50 = 1250 neurons, (5x5+1)x6x50 = 7800 weights
+            pLayer = new Layer("Layer02", pLayer);
+            NN.Layers.Add(pLayer);
+
+            for (ii = 0; ii < 1250; ++ii)
+            {
+                label = String.Format("Layer02_Neuron%04d_Num%06d", ii, icNeurons);
+                pLayer.Neurons.Add(new Neuron(label));
+                icNeurons++;
+            }
+
+            for (ii = 0; ii < 7800; ++ii)
+            {
+                label = String.Format("Layer02_Weight%04d_Num%06d", ii, icWeights);
+                initWeight = 0.05 * Utils.UNIFORM_PLUS_MINUS_ONE();
+                pLayer.Weights.Add(new Weight(label, initWeight));
+            }
+
+            // Interconnections with previous layer: this is difficult
+            // Each feature map in the previous layer is a top-down bitmap image whose size
+            // is 13x13, and there are 6 such feature maps.  Each neuron in one 5x5 feature map of this 
+            // layer is connected to a 5x5 kernel positioned correspondingly in all 6 parent
+            // feature maps, and there are individual weights for the six different 5x5 kernels.  As
+            // before, we move the kernel by TWO pixels, i.e., we
+            // skip every other pixel in the input image.  The result is 50 different 5x5 top-down bitmap
+            // feature maps
+            int[] kernelTemplate2 = new int[25]
+                {
+                    0, 1, 2, 3, 4, 
+                    13, 14, 15, 16, 17, 
+                    26, 27, 28, 29, 30, 
+                    39, 40, 41, 42, 43, 
+                    52, 53, 54, 55, 56 
+                };
+
+            for (fm = 0; fm < 50; ++fm)
+            {
+                for (ii = 0; ii < 5; ++ii)
+                {
+                    for (jj = 0; jj < 5; ++jj)
+                    {
+                        iNumWeight = fm * 26; // 26 is the number of weights per feature map
+                        Neuron n = pLayer.Neurons[jj + ii * 5 + fm * 25];
+
+                        n.AddConnection(UInt32.MaxValue, (uint)iNumWeight++); // bias weight
+
+                        for (kk = 0; kk < 25; ++kk)
+                        {
+                            // note: max val of index == 1013, corresponding to 1014 neurons in prev layer
+                            n.AddConnection((uint)(2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
+                            n.AddConnection((uint)(169 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
+                            n.AddConnection((uint)(338 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
+                            n.AddConnection((uint)(507 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
+                            n.AddConnection((uint)(676 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
+                            n.AddConnection((uint)(845 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
+                        }
+                    }
+                }
+            }
+
+            // layer three:
+            // This layer is a fully-connected layer with 100 units.  Since it is fully-connected,
+            // each of the 100 neurons in the layer is connected to all 1250 neurons in
+            // the previous layer.
+            // So, there are 100 neurons and 100*(1250+1)=125100 weights
+
+            pLayer = new Layer(("Layer03"), pLayer);
+            NN.Layers.Add(pLayer);
+
+            for (ii = 0; ii < 100; ++ii)
+            {
+                label = String.Format("Layer03_Neuron%04d_Num%06d", ii, icNeurons);
+                pLayer.Neurons.Add(new Neuron(label));
+                icNeurons++;
+            }
+
+            for (ii = 0; ii < 125100; ++ii)
+            {
+                label = String.Format("Layer03_Weight%04d_Num%06d", ii, icWeights);
+                initWeight = 0.05 * Utils.UNIFORM_PLUS_MINUS_ONE();
+                pLayer.Weights.Add(new Weight(label, initWeight));
+            }
+
+            // Interconnections with previous layer: fully-connected
+
+            iNumWeight = 0; // weights are not shared in this layer
+
+            for (fm = 0; fm < 100; ++fm)
+            {
+                Neuron n = pLayer.Neurons[fm];
+                n.AddConnection(UInt32.MaxValue, (uint)iNumWeight++); // bias weight
+
+                for (ii = 0; ii < 1250; ++ii)
+                {
+                    n.AddConnection((uint)ii, (uint)iNumWeight++);
+                }
+            }
+
+            // layer four, the final (output) layer:
+            // This layer is a fully-connected layer with 10 units.  Since it is fully-connected,
+            // each of the 10 neurons in the layer is connected to all 100 neurons in
+            // the previous layer.
+            // So, there are 10 neurons and 10*(100+1)=1010 weights
+
+            pLayer = new Layer("Layer04", pLayer);
+            NN.Layers.Add(pLayer);
+
+            for (ii = 0; ii < 10; ++ii)
+            {
+                label = String.Format("Layer04_Neuron%04d_Num%06d", ii, icNeurons);
+                pLayer.Neurons.Add(new Neuron(label));
+                icNeurons++;
+            }
+
+            for (ii = 0; ii < 1010; ++ii)
+            {
+                label = String.Format("Layer04_Weight%04d_Num%06d", ii, icWeights);
+                initWeight = 0.05 * Utils.UNIFORM_PLUS_MINUS_ONE();
+                pLayer.Weights.Add(new Weight(label, initWeight));
+            }
+
+            // Interconnections with previous layer: fully-connected
+
+            iNumWeight = 0; // weights are not shared in this layer
+
+            for (fm = 0; fm < 10; ++fm)
+            {
+                Neuron n = pLayer.Neurons[fm];
+                n.AddConnection(UInt32.MaxValue, (uint)iNumWeight++); // bias weight
+
+                for (ii = 0; ii < 100; ++ii)
+                {
+                    n.AddConnection((uint)ii, (uint)iNumWeight++);
+                }
+            }
+
+            //SetModifiedFlag( true );
         }
 
         private void button1_Click(object sender, System.EventArgs e)
@@ -102,8 +416,8 @@ namespace Visionary
             if (iNumThreads > 10) // 10 is arbitrary upper limit
                 iNumThreads = 10;
 
-            m_NN.m_etaLearningRate = initialEta;
-            m_NN.m_etaLearningRatePrevious = initialEta;
+            this.m_NN.EtaLearningRate = initialEta;
+            this.m_NN.EtaLearningRatePrevious = initialEta;
             m_dMinimumEta = minimumEta;
             m_dEtaDecay = etaDecay;
             m_nAfterEveryNBackprops = nAfterEvery;
@@ -182,7 +496,7 @@ namespace Visionary
 
                 //if (pThis.m_hWndForBackpropPosting != null)
                 {
-                    //::PostMessage( pThis->m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 1L, (LPARAM)iSequentialNum );
+                    //::PostMessage( pThis.m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 1L, (LPARAM)iSequentialNum );
                 }
 
 
@@ -241,7 +555,7 @@ namespace Visionary
 
                 //if (pThis.m_hWndForBackpropPosting != null)
                 {
-                    //::PostMessage( pThis->m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 2L, (LPARAM)scaledMSE );
+                    //::PostMessage( pThis.m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 2L, (LPARAM)scaledMSE );
                 }
 
 
@@ -266,7 +580,7 @@ namespace Visionary
                     // pattern was mis-recognized.  Notify the testing dialog
                     //if (pThis.m_hWndForBackpropPosting != null)
                     {
-                        //::PostMessage( pThis->m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 8L, (LPARAM)0L );
+                        //::PostMessage( pThis.m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 8L, (LPARAM)0L );
                     }
                 }
 
@@ -287,11 +601,11 @@ namespace Visionary
             {
                 if (((m_cBackprops % m_nAfterEveryNBackprops) == 0) && (m_cBackprops != 0))
                 {
-                    double eta = m_NN.m_etaLearningRate;
+                    double eta = this.m_NN.EtaLearningRate;
                     eta *= m_dEtaDecay;
                     if (eta < m_dMinimumEta) eta = m_dMinimumEta;
-                    m_NN.m_etaLearningRatePrevious = m_NN.m_etaLearningRate;
-                    m_NN.m_etaLearningRate = eta;
+                    this.m_NN.EtaLearningRatePrevious = this.m_NN.EtaLearningRate;
+                    this.m_NN.EtaLearningRate = eta;
                 }
 
 
@@ -399,7 +713,7 @@ namespace Visionary
 
             //if (m_hWndForBackpropPosting != null)
             {
-                // wParam == 4L -> related to Hessian, lParam == 1L -> commenced calculation
+                // wParam == 4L . related to Hessian, lParam == 1L . commenced calculation
                 //::PostMessage( m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 4L, 1L );
             }
 
@@ -472,7 +786,7 @@ namespace Visionary
                     // every 50 iterations ...
                     //if (m_hWndForBackpropPosting != null)
                     {
-                        // wParam == 4L -> related to Hessian, lParam == 2L -> progress indicator
+                        // wParam == 4L . related to Hessian, lParam == 2L . progress indicator
                         //::PostMessage( m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 4L, 2L );
                     }
                 }
@@ -487,13 +801,13 @@ namespace Visionary
 
             //if (m_hWndForBackpropPosting != null)
             {
-                // wParam == 4L -> related to Hessian, lParam == 4L -> finished calculation
+                // wParam == 4L . related to Hessian, lParam == 4L . finished calculation
                 //::PostMessage( m_hWndForBackpropPosting, UWM_BACKPROPAGATION_NOTIFICATION, 4L, 4L );
             }
 
         }
 
-        uint GetRandomTrainingPattern(byte[] pArray /* =NULL */, int pLabel /* =NULL */, bool bFlipGrayscale /* =TRUE */ )
+        uint GetRandomTrainingPattern(byte[] pArray /* =null */, int pLabel /* =null */, bool bFlipGrayscale /* =true */ )
         {
             // returns the number of the pattern corresponding to the pattern stored in pArray
 
@@ -734,11 +1048,11 @@ namespace Visionary
                         // At least one supporting pixel for the "phantom" pixel is outside the
                         // bounds of the character grid. Set its value to "background"
 
-                        sourceValue = 1.0; // "background" color in the -1 -> +1 range of inputVector
+                        sourceValue = 1.0; // "background" color in the -1 . +1 range of inputVector
                     }
 
                     mappedVector[row][col] = 0.5 * (1.0 - sourceValue);
-                    // conversion to 0->1 range we are using for mappedVector
+                    // conversion to 0.1 range we are using for mappedVector
 
                 }
             }
@@ -768,11 +1082,11 @@ namespace Visionary
         }
 
         uint GetNextTrainingPattern(byte[] pArray /* =null */, int pLabel /* =null */,
-                                           bool bFlipGrayscale /* =TRUE */, bool bFromRandomizedPatternSequence /* =TRUE */,
+                                           bool bFlipGrayscale /* =true */, bool bFromRandomizedPatternSequence /* =true */,
                                            out uint iSequenceNum /* =null */)
         {
             // returns the number of the pattern corresponding to the pattern that will be stored in pArray
-            // if bool bFromRandomizedPatternSequence is TRUE (which is the default) then the pattern
+            // if bool bFromRandomizedPatternSequence is true (which is the default) then the pattern
             // stored will be a pattern from the randomized sequence; otherwise the pattern will be a straight
             // sequential run through all the training patterns, from start to finish.  The sequence number,
             // which runs from 0..59999 monotonically, is returned in iSequenceNum (if it's not null)
@@ -806,7 +1120,7 @@ namespace Visionary
         }
 
         void GetTrainingPatternArrayValues(int iNumImage /* =0 */, byte[] pArray /* =null */, ref int pLabel /* =null */,
-                                              bool bFlipGrayscale /* =TRUE */ )
+                                              bool bFlipGrayscale /* =true */ )
         {
             // fills an unsigned char array with gray values, corresponding to iNumImage, and also
             // returns the label for the image
@@ -858,6 +1172,343 @@ namespace Visionary
                     pLabel = Int32.MaxValue;
                 }
             }
+        }
+
+        double GetCurrentEta()
+        {
+            return this.m_NN.EtaLearningRate;
+        }
+
+        double GetPreviousEta()
+        {
+            // provided because threads might change the current eta before we are able to read it
+            return m_NN.EtaLearningRatePrevious;
+        }
+
+        uint GetCurrentTrainingPatternNumber(bool bFromRandomizedPatternSequence /* =false */ )
+        {
+            // returns the current number of the training pattern, either from the straight sequence, or from
+            // the randomized sequence
+            uint iRet;
+
+            if (bFromRandomizedPatternSequence == false)
+            {
+                iRet = m_iNextTrainingPattern;
+            }
+            else
+            {
+                iRet = m_iRandomizedTrainingPatternSequence[m_iNextTrainingPattern];
+            }
+
+            return iRet;
+        }
+
+        uint GetNextTestingPatternNumber()
+        {
+            return (uint)this.m_iNextTestingPattern;
+        }
+
+        uint GetNextTestingPattern(byte[] pArray /* =null */, ref int pLabel /* =null */, bool bFlipGrayscale /* =true */ )
+        {
+            // returns the number of the pattern corresponding to the pattern stored in pArray
+
+            //CAutoCS tlo( m_csTestingPatterns );
+
+
+            GetTestingPatternArrayValues(m_iNextTestingPattern, pArray, ref pLabel, bFlipGrayscale);
+
+            uint iRet = (uint)this.m_iNextTestingPattern;
+            m_iNextTestingPattern++;
+
+            if (m_iNextTestingPattern >= Settings.Default.m_nItemsTestingImages)
+            {
+                m_iNextTestingPattern = 0;
+            }
+
+            return iRet;
+        }
+
+        void GetTestingPatternArrayValues(int iNumImage /* =0 */, byte[] pArray /* =null */, ref int pLabel /* =null */,
+                                             bool bFlipGrayscale /* =true */ )
+        {
+            // fills an unsigned char array with gray values, corresponding to iNumImage, and also
+            // returns the label for the image
+
+            //CAutoCS tlo( m_csTestingPatterns );
+
+            int cCount = (int)(g_cImageSize * g_cImageSize);
+            int fPos;
+
+            if (true)// m_bFilesOpen != false )
+            {
+                if (pArray != null)
+                {
+                    fPos = 16 + iNumImage * cCount;  // 16 compensates for file header info
+                    //m_fileTestingImages.Seek( fPos, CFile::begin );
+                    //m_fileTestingImages.Read( pArray, cCount );
+
+                    if (bFlipGrayscale != false)
+                    {
+                        for (int ii = 0; ii < cCount; ++ii)
+                        {
+                            pArray[ii] = (byte)(255 - pArray[ii]);
+                        }
+                    }
+                }
+
+                if (pLabel != null)
+                {
+                    fPos = 8 + iNumImage;
+                    char r = '\0';
+                    //m_fileTestingLabels.Seek( fPos, CFile::begin );
+                    //m_fileTestingLabels.Read( &r, 1 );  // single byte
+
+                    pLabel = r;
+                }
+            }
+            else  // no files are open: return a simple gray wedge
+            {
+                if (pArray != null)
+                {
+                    for (int ii = 0; ii < cCount; ++ii)
+                    {
+                        pArray[ii] = (byte)(ii * 255 / cCount);
+                    }
+                }
+
+                if (pLabel != null)
+                {
+                    pLabel = (int)Int32.MaxValue;
+                }
+            }
+        }
+
+        bool StartTesting(uint iStartingPattern, uint iNumThreads, bool bDistortPatterns,
+                             uint iWhichImageSet /* =1 */ )
+        {
+            // creates and starts testing threads
+
+            if (m_bTestingThreadsAreRunning != false)
+                return false;
+
+            m_bTestingThreadAbortFlag = false;
+            m_bTestingThreadsAreRunning = true;
+            m_iNumTestingThreadsRunning = 0;
+            m_iTestingThreadIdentifier = 0;
+
+            m_iNextTestingPattern = (int)iStartingPattern;
+            //m_hWndForTestingPosting = hWnd;
+            m_iWhichImageSet = iWhichImageSet;
+
+            if (m_iWhichImageSet > 1)
+                m_iWhichImageSet = 1;
+            if (m_iWhichImageSet < 0)  // which is not possible, since m_iWhichImageSet is a uint
+                m_iWhichImageSet = 0;
+
+            if (m_iNextTestingPattern < 0)
+                m_iNextTestingPattern = 0;
+            if (m_iNextTestingPattern >= Settings.Default.m_nItemsTestingImages)
+                m_iNextTestingPattern = (int)(Settings.Default.m_nItemsTestingImages - 1);
+
+            if (iNumThreads < 1)
+                iNumThreads = 1;
+            if (iNumThreads > 10)  // 10 is arbitrary upper limit
+                iNumThreads = 10;
+
+            m_bDistortTestingPatterns = bDistortPatterns;
+
+            for (uint ii = 0; ii < iNumThreads; ++ii)
+            {
+                Thread pThread = new Thread(TestingThread);
+                pThread.Start(this);
+
+                m_pTestingThreads[ii] = pThread;
+                m_iNumTestingThreadsRunning++;
+            }
+
+            return true;
+        }
+
+        void TestingThread(MainForm pVoid)
+        {
+            // thread for testing of Neural net
+            // Continuously get the doc's next pattern, puts it through the neural net, and
+            // inspects the output.  As the thread goes through the patterns, it post messages to the
+            // m_hWndForTestingPosting, which presumably is the dialog that shows testing results,
+            // advising it of the current pattern being tested.  If the actual output from the 
+            // neural net differs from the desired output, another message is posted, advising the 
+            // m_hWndForTestingPosting of the identity of the mis-recognized pattern
+
+            // thread is owned by the doc and accepts a pointer to the doc as a parameter
+
+
+            MainForm pThis = pVoid;
+
+            // set thread name (helps during debugging)
+
+            char[] str = new char[25];  // must use chars, not TCHARs, for SetThreadname function
+            //sprintf( str, "TEST%02d", pThis.m_iTestingThreadIdentifier++ );
+            //SetThreadName( -1, str );
+
+            // do the work
+
+            double[] inputVector = new double[841];
+            double[] targetOutputVector = new double[10];
+            double[] actualOutputVector = new double[10];
+            double dPatternMSE = 0.0;
+            double dTotalMSE = 0.0;
+            uint scaledMSE = 0;
+            uint iPatternsProcessed = 0;
+
+            byte[] grayLevels = new byte[g_cImageSize * g_cImageSize];
+            int label = 0;
+            int ii, jj;
+            uint iPatNum, iSequentialNum;
+
+            while (pThis.m_bTestingThreadAbortFlag == false)
+            {
+                // testing image set or training image set
+
+                if (pThis.m_iWhichImageSet == 1)
+                {
+                    // testing set
+
+                    iPatNum = pThis.GetNextTestingPattern(grayLevels, ref label, true);
+
+                    // post message to the dialog, telling it which pattern this thread is currently working on
+
+                    if (true)// pThis.m_hWndForTestingPosting != null )
+                    {
+                        //::PostMessage( pThis.m_hWndForTestingPosting, UWM_TESTING_NOTIFICATION, 1L, (LPARAM)iPatNum );
+                    }
+                }
+                else
+                {
+                    // training set
+
+                    iPatNum = pThis.GetNextTrainingPattern(grayLevels, label, true, false, iSequentialNum);
+
+                    // post message to the dialog, telling it which pattern this thread is currently working on
+
+                    if (true)// pThis.m_hWndForTestingPosting != null )
+                    {
+                        //::PostMessage( pThis.m_hWndForTestingPosting, UWM_TESTING_NOTIFICATION, 1L, (LPARAM)iSequentialNum );
+                    }
+                }
+
+                if (label < 0)
+                {
+                    label = 0;
+                }
+                if (label > 9)
+                {
+                    label = 9;
+                }
+
+                // pad to 29x29, convert to double precision
+                for (ii = 0; ii < 841; ++ii)
+                {
+                    inputVector[ii] = 1.0;  // one is white, -one is black
+                }
+
+                // top row of inputVector is left as zero, left-most column is left as zero 
+
+                for (ii = 0; ii < g_cImageSize; ++ii)
+                {
+                    for (jj = 0; jj < g_cImageSize; ++jj)
+                    {
+                        inputVector[1 + jj + 29 * (ii + 1)] = (double)((int)(byte)grayLevels[jj + g_cImageSize * ii]) / 128.0 - 1.0;
+                        // one is white, -one is black
+                    }
+                }
+
+                // desired output vector
+
+                for (ii = 0; ii < 10; ++ii)
+                {
+                    targetOutputVector[ii] = -1.0;
+                }
+                targetOutputVector[label] = 1.0;
+
+
+                // now calculate output of neural network
+
+                pThis.CalculateNeuralNet(inputVector, 841, actualOutputVector, 10, null, pThis.m_bDistortTestingPatterns);
+
+
+                // calculate error for this pattern and accumulate it for posting of
+                // total MSE of all patterns when thread is exiting
+
+                dPatternMSE = 0.0;
+                for (ii = 0; ii < 10; ++ii)
+                {
+                    dPatternMSE += (actualOutputVector[ii] - targetOutputVector[ii]) * (actualOutputVector[ii] - targetOutputVector[ii]);
+                }
+
+                dPatternMSE /= 2.0;
+
+                dTotalMSE += dPatternMSE;
+                ++iPatternsProcessed;
+
+
+                // determine the neural network's answer, and compare it to the actual answer
+
+                int iBestIndex = 0;
+                double maxValue = -99.0;
+                uint code;
+
+                for (ii = 0; ii < 10; ++ii)
+                {
+                    if (actualOutputVector[ii] > maxValue)
+                    {
+                        iBestIndex = ii;
+                        maxValue = actualOutputVector[ii];
+                    }
+                }
+
+
+                // moment of truth: Did neural net get the correct answer
+
+                if (iBestIndex != label)
+                {
+                    // pattern was mis-recognized.  Notify the testing dialog
+
+                    // lParam is built to contain a coded bit pattern, as follows:
+                    //
+                    //  0          1          2         3
+                    //  0123456 7890123 456789012345678901
+                    // |  act  |  tar  |    pattern num   |
+                    //
+                    // where act == actual output of the neural net, and tar == target
+                    // this gives 2^7 = 128 possible outputs (only 10 are needed here... future expansion??)
+                    // and 2^18 = 262144 possible pattern numbers ( only 10000 are needed here )
+
+                    code = (iPatNum & 0x0003FFFF);
+                    code |= (label & 0x0000007F) << 18;
+                    code |= (iBestIndex & 0x0000007F) << 25;
+
+                    if (true)// pThis.m_hWndForTestingPosting != null )
+                    {
+                        //::PostMessage( pThis.m_hWndForTestingPosting, UWM_TESTING_NOTIFICATION, 2L, (LPARAM)code );
+                    }
+                }
+
+            }
+
+
+            // post the total MSE of tested patterns to the hwnd
+
+            double divisor = (double)((iPatternsProcessed > 1) ? iPatternsProcessed : 1);
+            dTotalMSE /= divisor;
+            scaledMSE = (uint)(Math.Sqrt(dTotalMSE) * 2.0e8);  // arbitrary large pre-agreed upon scale factor; taking sqrt is simply to improve the scaling
+
+            if (true)// pThis.m_hWndForTestingPosting != null )
+            {
+                //::PostMessage( pThis.m_hWndForTestingPosting, UWM_TESTING_NOTIFICATION, 4L, (LPARAM)scaledMSE );
+            }
+
+            return 0L;
+
         }
 
     }
