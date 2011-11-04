@@ -1,0 +1,7 @@
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\bin\Debug\Visionary.Examples.Xor.exe
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\bin\Debug\Visionary.Examples.Xor.pdb
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\bin\Debug\Visionary.ConvolutionalNeuralNetwork.dll
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\bin\Debug\Visionary.ConvolutionalNeuralNetwork.pdb
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\obj\x86\Debug\ResolveAssemblyReference.cache
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\obj\x86\Debug\Visionary.Examples.Xor.exe
+D:\Development\nebulous\Visionary\Visionary.Examples.Xor\obj\x86\Debug\Visionary.Examples.Xor.pdb

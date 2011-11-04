@@ -147,7 +147,6 @@ namespace Visionary
             //CAutoMutex tlo( m_utxNeuralNet );
 
             // initialize and build the neural net
-
             NeuralNetwork NN = m_NN; // for easier nomenclature
             NN.Initialize();
 
@@ -162,7 +161,6 @@ namespace Visionary
             // layer zero, the input layer.
             // Create neurons: exactly the same number of neurons as the input
             // vector of 29x29=841 pixels, and no weights/connections
-
             pLayer = new Layer("Layer00");
             NN.Layers.Add(pLayer);
 
@@ -174,7 +172,7 @@ namespace Visionary
             }
 
             // layer one:
-            // This layer is a convolutional layer that has 6 feature maps.  Each feature 
+            // This layer is a convolutional layer that has 6 feature maps. Each feature 
             // map is 13x13, and each unit in the feature maps is a 5x5 convolutional kernel
             // of the input layer.
             // So, there are 13x13x6 = 1014 neurons, (5x5+1)x6 = 156 weights
@@ -200,7 +198,7 @@ namespace Visionary
             // Each neuron in this layer is connected to a 5x5 kernel in its feature map, which 
             // is also a top-down bitmap of size 13x13.  We move the kernel by TWO pixels, i.e., we
             // skip every other pixel in the input image
-            int[] kernelTemplate = new int[25]
+            int[] kernelTemplate = new int[]
                 {
                     0, 1, 2, 3, 4, 
                     29, 30, 31, 32, 33, 
@@ -210,7 +208,6 @@ namespace Visionary
                 };
 
             int iNumWeight;
-
             int fm;
 
             for (fm = 0; fm < 6; ++fm)
@@ -226,7 +223,7 @@ namespace Visionary
 
                         for (kk = 0; kk < 25; ++kk)
                         {
-                            // note: max val of index == 840, corresponding to 841 neurons in prev layer
+                            // note: max value of index == 840, corresponding to 841 neurons in previous layer
                             n.AddConnection((uint)(2 * jj + 58 * ii + kernelTemplate[kk]), (uint)iNumWeight++);
                         }
                     }
@@ -285,7 +282,7 @@ namespace Visionary
 
                         for (kk = 0; kk < 25; ++kk)
                         {
-                            // note: max val of index == 1013, corresponding to 1014 neurons in prev layer
+                            // note: max value of index == 1013, corresponding to 1014 neurons in previous layer
                             n.AddConnection((uint)(2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
                             n.AddConnection((uint)(169 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
                             n.AddConnection((uint)(338 + 2 * jj + 26 * ii + kernelTemplate2[kk]), (uint)iNumWeight++);
@@ -302,8 +299,7 @@ namespace Visionary
             // each of the 100 neurons in the layer is connected to all 1250 neurons in
             // the previous layer.
             // So, there are 100 neurons and 100*(1250+1)=125100 weights
-
-            pLayer = new Layer(("Layer03"), pLayer);
+            pLayer = new Layer("Layer03", pLayer);
             NN.Layers.Add(pLayer);
 
             for (ii = 0; ii < 100; ++ii)
@@ -321,7 +317,6 @@ namespace Visionary
             }
 
             // Interconnections with previous layer: fully-connected
-
             iNumWeight = 0; // weights are not shared in this layer
 
             for (fm = 0; fm < 100; ++fm)
@@ -340,7 +335,6 @@ namespace Visionary
             // each of the 10 neurons in the layer is connected to all 100 neurons in
             // the previous layer.
             // So, there are 10 neurons and 10*(100+1)=1010 weights
-
             pLayer = new Layer("Layer04", pLayer);
             NN.Layers.Add(pLayer);
 
@@ -359,7 +353,6 @@ namespace Visionary
             }
 
             // Interconnections with previous layer: fully-connected
-
             iNumWeight = 0; // weights are not shared in this layer
 
             for (fm = 0; fm < 10; ++fm)
@@ -391,7 +384,10 @@ namespace Visionary
             bool bDistortPatterns /* =true */,
             double estimatedCurrentMSE /* =1.0 */)
         {
-            if (m_bBackpropThreadsAreRunning != false) return false;
+            if (this.m_bBackpropThreadsAreRunning)
+            {
+                return false;
+            }
 
             m_bBackpropThreadAbortFlag = false;
             m_bBackpropThreadsAreRunning = true;
@@ -412,9 +408,15 @@ namespace Visionary
                 m_iNextTrainingPattern = (uint)(Settings.Default.m_nItemsTrainingImages - 1);
             }
 
-            if (iNumThreads < 1) iNumThreads = 1;
+            if (iNumThreads < 1)
+            {
+                iNumThreads = 1;
+            }
+
             if (iNumThreads > 10) // 10 is arbitrary upper limit
+            {
                 iNumThreads = 10;
+            }
 
             this.m_NN.EtaLearningRate = initialEta;
             this.m_NN.EtaLearningRatePrevious = initialEta;
@@ -476,21 +478,25 @@ namespace Visionary
             double[] inputVector = new double[841]; // note: 29x29, not 28x28
             double[] targetOutputVector = new double[10];
             double[] actualOutputVector = new double[10];
-            double dMSE;
-            uint scaledMSE;
             byte[] grayLevels = new byte[Settings.Default.m_nRowsImages * Settings.Default.m_nRowsImages];
             int label = 0;
-            int ii, jj;
-            uint iSequentialNum;
 
             List<List<double>> memorizedNeuronOutputs = new List<List<double>>();
 
             while (pThis.m_bBackpropThreadAbortFlag == false)
             {
+                uint iSequentialNum;
                 int iRet = (int)pThis.GetNextTrainingPattern(grayLevels, label, true, true, out iSequentialNum);
 
-                if (label < 0) label = 0;
-                if (label > 9) label = 9;
+                if (label < 0)
+                {
+                    label = 0;
+                }
+
+                if (label > 9)
+                {
+                    label = 9;
+                }
 
                 // post message to the dialog, telling it which pattern this thread is currently working on
 
@@ -502,6 +508,7 @@ namespace Visionary
 
                 // pad to 29x29, convert to double precision
 
+                int ii;
                 for (ii = 0; ii < 841; ++ii)
                 {
                     inputVector[ii] = 1.0; // one is white, -one is black
@@ -511,6 +518,7 @@ namespace Visionary
 
                 for (ii = 0; ii < Settings.Default.m_nRowsImages; ++ii)
                 {
+                    int jj;
                     for (jj = 0; jj < Settings.Default.m_nColsImages; ++jj)
                     {
                         inputVector[1 + jj + 29 * (ii + 1)] =
@@ -520,15 +528,14 @@ namespace Visionary
                 }
 
                 // desired output vector
-
                 for (ii = 0; ii < 10; ++ii)
                 {
                     targetOutputVector[ii] = -1.0;
                 }
+
                 targetOutputVector[label] = 1.0;
 
                 // now backpropagate
-
                 pThis.BackpropagateNeuralNet(
                     inputVector,
                     841,
@@ -541,16 +548,16 @@ namespace Visionary
 
                 // calculate error for this pattern and post it to the hwnd so it can calculate a running 
                 // estimate of MSE
-
-                dMSE = 0.0;
+                double dMSE = 0.0;
                 for (ii = 0; ii < 10; ++ii)
                 {
                     dMSE += (actualOutputVector[ii] - targetOutputVector[ii])
                             * (actualOutputVector[ii] - targetOutputVector[ii]);
                 }
+
                 dMSE /= 2.0;
 
-                scaledMSE = (uint)(Math.Sqrt(dMSE) * 2.0e8);
+                uint scaledMSE = (uint)(Math.Sqrt(dMSE) * 2.0e8);
                 // arbitrary large pre-agreed upon scale factor; taking sqrt is simply to improve the scaling
 
                 //if (pThis.m_hWndForBackpropPosting != null)
@@ -597,19 +604,22 @@ namespace Visionary
             bool bDistort)
         {
             bool bWorthwhileToBackpropagate; /////// part of code review
-
             {
                 if (((m_cBackprops % m_nAfterEveryNBackprops) == 0) && (m_cBackprops != 0))
                 {
                     double eta = this.m_NN.EtaLearningRate;
                     eta *= m_dEtaDecay;
-                    if (eta < m_dMinimumEta) eta = m_dMinimumEta;
+                    if (eta < m_dMinimumEta)
+                    {
+                        eta = m_dMinimumEta;
+                    }
+
                     this.m_NN.EtaLearningRatePrevious = this.m_NN.EtaLearningRate;
                     this.m_NN.EtaLearningRate = eta;
                 }
 
 
-                if ((m_bNeedHessian != false) || ((m_cBackprops % Settings.Default.m_nItemsTrainingImages) == 0))
+                if (this.m_bNeedHessian || ((m_cBackprops % Settings.Default.m_nItemsTrainingImages) == 0))
                 {
                     // adjust the Hessian.  This is a lengthy operation, since it must process approx 500 labels
                     CalculateHessian();
@@ -619,50 +629,36 @@ namespace Visionary
 
 
                 // determine if it's time to randomize the sequence of training patterns (currently once per epoch)
-
                 if ((m_cBackprops % Settings.Default.m_nItemsTrainingImages) == 0)
                 {
                     RandomizeTrainingPatternSequence();
                 }
 
-
                 // increment counter for tracking number of backprops
                 m_cBackprops++;
-
 
                 // forward calculate through the neural net
                 CalculateNeuralNet(inputVector, iCount, actualOutputVector, oCount, pMemorizedNeuronOutputs, bDistort);
 
-
                 // calculate error in the output of the neural net
                 // note that this code duplicates that found in many other places, and it's probably sensible to 
                 // define a (global/static ??) function for it
-
                 double dMSE = 0.0;
                 for (int ii = 0; ii < 10; ++ii)
                 {
                     dMSE += (actualOutputVector[ii] - targetOutputVector[ii])
                             * (actualOutputVector[ii] - targetOutputVector[ii]);
                 }
+
                 dMSE /= 2.0;
+                bWorthwhileToBackpropagate = dMSE > (0.10 * this.m_dEstimatedCurrentMSE);
 
-                if (dMSE <= (0.10 * m_dEstimatedCurrentMSE))
-                {
-                    bWorthwhileToBackpropagate = false;
-                }
-                else
-                {
-                    bWorthwhileToBackpropagate = true;
-                }
-
-
-                if ((bWorthwhileToBackpropagate != false) && (pMemorizedNeuronOutputs == null))
+                if (bWorthwhileToBackpropagate && (pMemorizedNeuronOutputs == null))
                 {
                     // the caller has not provided a place to store neuron outputs, so we need to
                     // backpropagate now, while the neural net is still captured.  Otherwise, another thread
                     // might come along and call CalculateNeuralNet(), which would entirely change the neuron
                     // outputs and thereby inject errors into backpropagation 
-
                     m_NN.Backpropagate(actualOutputVector, targetOutputVector, (uint)oCount, null);
 
                     //SetModifiedFlag(true);
@@ -670,15 +666,13 @@ namespace Visionary
                     // we're done, so return
                     return;
                 }
-
             }
 
             // if we have reached here, then the mutex for the neural net has been released for other 
             // threads.  The caller must have provided a place to store neuron outputs, which we can 
             // use to backpropagate, even if other threads call CalculateNeuralNet() and change the outputs
             // of the neurons
-
-            if ((bWorthwhileToBackpropagate != false))
+            if (bWorthwhileToBackpropagate)
             {
                 m_NN.Backpropagate(actualOutputVector, targetOutputVector, (uint)oCount, pMemorizedNeuronOutputs);
 
@@ -686,7 +680,6 @@ namespace Visionary
 
                 //SetModifiedFlag(true);
             }
-
         }
 
         private void CalculateHessian()
@@ -696,14 +689,12 @@ namespace Visionary
             // with the UI
 
             // we need the neural net exclusively during this calculation, so grab it now
-
             double[] inputVector = new double[841];
             double[] targetOutputVector = new double[10];
             double[] actualOutputVector = new double[10];
 
             byte[] grayLevels = new byte[g_cImageSize * g_cImageSize];
             int label = 0;
-            int ii, jj;
             uint kk;
 
             // calculate the diagonal Hessian using 500 random patterns, per Yann LeCun 1998 "Gradient-Based Learning
@@ -727,33 +718,39 @@ namespace Visionary
             {
                 GetRandomTrainingPattern(grayLevels, label, true);
 
-                if (label < 0) label = 0;
-                if (label > 9) label = 9;
+                if (label < 0)
+                {
+                    label = 0;
+                }
 
+                if (label > 9)
+                {
+                    label = 9;
+                }
 
                 // pad to 29x29, convert to double precision
-
+                int ii;
                 for (ii = 0; ii < 841; ++ii)
                 {
                     inputVector[ii] = 1.0; // one is white, -one is black
                 }
 
                 // top row of inputVector is left as zero, left-most column is left as zero 
-
                 for (ii = 0; ii < g_cImageSize; ++ii)
                 {
+                    int jj;
                     for (jj = 0; jj < g_cImageSize; ++jj)
                     {
-                        inputVector[1 + jj + 29 * (ii + 1)] = (double)((int)(byte)grayLevels[jj + g_cImageSize * ii]) / 128.0 - 1.0; // one is white, -one is black
+                        inputVector[1 + jj + 29 * (ii + 1)] = grayLevels[jj + g_cImageSize * ii] / 128.0 - 1.0; // one is white, -one is black
                     }
                 }
 
                 // desired output vector
-
                 for (ii = 0; ii < 10; ++ii)
                 {
                     targetOutputVector[ii] = -1.0;
                 }
+
                 targetOutputVector[label] = 1.0;
 
 
@@ -791,11 +788,13 @@ namespace Visionary
                     }
                 }
 
-                if (m_bBackpropThreadAbortFlag != false) break;
-
+                if (this.m_bBackpropThreadAbortFlag)
+                {
+                    break;
+                }
             }
 
-            m_NN.DivideHessianInformationBy((double)numPatternsSampled);
+            m_NN.DivideHessianInformationBy(numPatternsSampled);
 
             // message to dialog that we are finished calculating the Hessian
 
@@ -823,31 +822,28 @@ namespace Visionary
         private void CalculateNeuralNet(
             double[] inputVector,
             int count,
-            double[] outputVector /* =null */,
-            int oCount /* =0 */,
-            List<List<double>> pNeuronOutputs /* =null */,
-            bool bDistort /* =false */)
+            double[] outputVector = null,
+            int oCount = 0,
+            List<List<double>> pNeuronOutputs = null,
+            bool bDistort = false)
         {
             // wrapper function for neural net's Calculate() function, needed because the NN is a protected member
             // waits on the neural net mutex (using the CAutoMutex object, which automatically releases the
             // mutex when it goes out of scope) so as to restrict access to one thread at a time
-
             if (bDistort)
             {
                 GenerateDistortionMap();
                 ApplyDistortionMap(inputVector);
             }
 
-
             m_NN.Calculate(inputVector, (uint)count, outputVector, (uint)oCount, pNeuronOutputs);
-
         }
 
         private void GenerateDistortionMap(double severityFactor = 1.0)
         {
             // generates distortion maps in each of the horizontal and vertical directions
             // Three distortions are applied: a scaling, a rotation, and an elastic distortion
-            // Since these are all linear tranformations, we can simply add them together, after calculation
+            // Since these are all linear transformations, we can simply add them together, after calculation
             // one at a time
 
             // The input parameter, severityFactor, let's us control the severity of the distortions relative
@@ -856,8 +852,7 @@ namespace Visionary
 
             // First, elastic distortion, per Patrice Simard, "Best Practices For Convolutional Neural Networks..."
             // at page 2.
-            // Three-step process: seed array with uniform randoms, filter with a gaussian kernel, normalize (scale)
-
+            // Three-step process: seed array with uniform randoms, filter with a Gaussian kernel, normalize (scale)
             int row, col;
             double[] uniformH = new double[m_cCount];
             double[] uniformV = new double[m_cCount];
@@ -873,27 +868,27 @@ namespace Visionary
             }
 
             // filter with gaussian
-
-            double fConvolvedH, fConvolvedV;
-            double fSampleH, fSampleV;
             double elasticScale = severityFactor * Settings.Default.m_dElasticScaling;
-            int xxx, yyy, xxxDisp, yyyDisp;
             int iiMid = GAUSSIAN_FIELD_SIZE / 2; // GAUSSIAN_FIELD_SIZE is strictly odd
 
             for (col = 0; col < m_cCols; ++col)
             {
                 for (row = 0; row < m_cRows; ++row)
                 {
-                    fConvolvedH = 0.0;
-                    fConvolvedV = 0.0;
+                    double fConvolvedH = 0.0;
+                    double fConvolvedV = 0.0;
 
+                    int xxx;
                     for (xxx = 0; xxx < GAUSSIAN_FIELD_SIZE; ++xxx)
                     {
+                        int yyy;
                         for (yyy = 0; yyy < GAUSSIAN_FIELD_SIZE; ++yyy)
                         {
-                            xxxDisp = col - iiMid + xxx;
-                            yyyDisp = row - iiMid + yyy;
+                            int xxxDisp = col - iiMid + xxx;
+                            int yyyDisp = row - iiMid + yyy;
 
+                            double fSampleH;
+                            double fSampleV;
                             if (xxxDisp < 0 || xxxDisp >= m_cCols || yyyDisp < 0 || yyyDisp >= m_cRows)
                             {
                                 fSampleH = 0.0;
@@ -917,7 +912,6 @@ namespace Visionary
 
             // next, the scaling of the image by a random scale factor
             // Horizontal and vertical directions are scaled independently
-
             double dSFHoriz = severityFactor * Settings.Default.m_dMaxScaling / 100.0 * Utils.UNIFORM_PLUS_MINUS_ONE();
             // m_dMaxScaling is a percentage
             double dSFVert = severityFactor * Settings.Default.m_dMaxScaling / 100.0 * Utils.UNIFORM_PLUS_MINUS_ONE();
@@ -925,7 +919,6 @@ namespace Visionary
 
 
             int iMid = m_cRows / 2;
-
             for (row = 0; row < m_cRows; ++row)
             {
                 for (col = 0; col < m_cCols; ++col)
@@ -937,7 +930,6 @@ namespace Visionary
 
 
             // finally, apply a rotation
-
             double angle = severityFactor * Settings.Default.m_dMaxRotation * Utils.UNIFORM_PLUS_MINUS_ONE();
             angle = angle * 3.1415926535897932384626433832795 / 180.0; // convert from degrees to radians
 
@@ -963,20 +955,13 @@ namespace Visionary
             // For the mapped array, we assume that 0.0 == background, and 1.0 == full intensity information
             // This is different from the input vector, in which +1.0 == background (white), and 
             // -1.0 == information (black), so we must convert one to the other
-
             List<List<double>> mappedVector = new List<List<double>>(m_cRows);
             for (int i = 0; i < m_cRows; ++i)
             {
                 mappedVector.Add(new List<double>(m_cCols));
             }
 
-            double sourceRow, sourceCol;
-            double fracRow, fracCol;
-            double w1, w2, w3, w4;
-            double sourceValue;
             int row, col;
-            int sRow, sCol, sRowp1, sColp1;
-            bool bSkipOutOfBounds;
 
             for (row = 0; row < m_cRows; ++row)
             {
@@ -987,21 +972,19 @@ namespace Visionary
                     // sourceRow and sourceCol are floating point, not ints, there's not a real pixel there)
                     // The idea is that if we can calculate the value of this phantom pixel, then its 
                     // displacement will exactly fit into the current pixel at row, col (which are both ints)
-
-                    sourceRow = (double)row - At(m_DispV, row, col);
-                    sourceCol = (double)col - At(m_DispH, row, col);
+                    double sourceRow = row - this.At(this.m_DispV, row, col);
+                    double sourceCol = col - this.At(this.m_DispH, row, col);
 
                     // weights for bi-linear interpolation
 
-                    fracRow = sourceRow - (int)sourceRow;
-                    fracCol = sourceCol - (int)sourceCol;
+                    double fracRow = sourceRow - (int)sourceRow;
+                    double fracCol = sourceCol - (int)sourceCol;
 
 
-                    w1 = (1.0 - fracRow) * (1.0 - fracCol);
-                    w2 = (1.0 - fracRow) * fracCol;
-                    w3 = fracRow * (1 - fracCol);
-                    w4 = fracRow * fracCol;
-
+                    double w1 = (1.0 - fracRow) * (1.0 - fracCol);
+                    double w2 = (1.0 - fracRow) * fracCol;
+                    double w3 = fracRow * (1 - fracCol);
+                    double w4 = fracRow * fracCol;
 
                     // limit indexes
 
@@ -1012,34 +995,62 @@ namespace Visionary
                                 while (sourceCol >= m_cCols ) sourceCol -= m_cCols;
                                 while (sourceCol < 0 ) sourceCol += m_cCols;
                     */
-                    bSkipOutOfBounds = false;
+                    bool bSkipOutOfBounds = false;
 
-                    if ((sourceRow + 1.0) >= m_cRows) bSkipOutOfBounds = true;
-                    if (sourceRow < 0) bSkipOutOfBounds = true;
+                    if ((sourceRow + 1.0) >= m_cRows)
+                    {
+                        bSkipOutOfBounds = true;
+                    }
 
-                    if ((sourceCol + 1.0) >= m_cCols) bSkipOutOfBounds = true;
-                    if (sourceCol < 0) bSkipOutOfBounds = true;
+                    if (sourceRow < 0)
+                    {
+                        bSkipOutOfBounds = true;
+                    }
 
+                    if ((sourceCol + 1.0) >= m_cCols)
+                    {
+                        bSkipOutOfBounds = true;
+                    }
+
+                    if (sourceCol < 0)
+                    {
+                        bSkipOutOfBounds = true;
+                    }
+
+                    double sourceValue;
                     if (bSkipOutOfBounds == false)
                     {
                         // the supporting pixels for the "phantom" source pixel are all within the 
                         // bounds of the character grid.
                         // Manufacture its value by bi-linear interpolation of surrounding pixels
 
-                        sRow = (int)sourceRow;
-                        sCol = (int)sourceCol;
+                        int sRow = (int)sourceRow;
+                        int sCol = (int)sourceCol;
 
-                        sRowp1 = sRow + 1;
-                        sColp1 = sCol + 1;
+                        int sRowp1 = sRow + 1;
+                        int sColp1 = sCol + 1;
 
-                        while (sRowp1 >= m_cRows) sRowp1 -= m_cRows;
-                        while (sRowp1 < 0) sRowp1 += m_cRows;
+                        while (sRowp1 >= m_cRows)
+                        {
+                            sRowp1 -= m_cRows;
+                        }
 
-                        while (sColp1 >= m_cCols) sColp1 -= m_cCols;
-                        while (sColp1 < 0) sColp1 += m_cCols;
+                        while (sRowp1 < 0)
+                        {
+                            sRowp1 += m_cRows;
+                        }
+
+                        while (sColp1 >= m_cCols)
+                        {
+                            sColp1 -= m_cCols;
+                        }
+
+                        while (sColp1 < 0)
+                        {
+                            sColp1 += m_cCols;
+                        }
 
                         // perform bi-linear interpolation
-
                         sourceValue = w1 * At(inputVector, sRow, sCol) + w2 * At(inputVector, sRow, sColp1)
                                       + w3 * At(inputVector, sRowp1, sCol) + w4 * At(inputVector, sRowp1, sColp1);
                     }
@@ -1047,18 +1058,15 @@ namespace Visionary
                     {
                         // At least one supporting pixel for the "phantom" pixel is outside the
                         // bounds of the character grid. Set its value to "background"
-
                         sourceValue = 1.0; // "background" color in the -1 . +1 range of inputVector
                     }
 
                     mappedVector[row][col] = 0.5 * (1.0 - sourceValue);
                     // conversion to 0.1 range we are using for mappedVector
-
                 }
             }
 
             // now, invert again while copying back into original vector
-
             for (row = 0; row < m_cRows; ++row)
             {
                 for (col = 0; col < m_cCols; ++col)
@@ -1066,7 +1074,6 @@ namespace Visionary
                     this.AtAssign(inputVector, row, col, 1.0 - 2.0 * mappedVector[row][col]);
                 }
             }
-
         }
 
         private void AtAssign(double[] p, int row, int col, double newValue) // zero-based indices, starting at bottom-left
@@ -1329,7 +1336,7 @@ namespace Visionary
             return true;
         }
 
-        void TestingThread(MainForm pVoid)
+        private void TestingThread(object pVoid)
         {
             // thread for testing of Neural net
             // Continuously get the doc's next pattern, puts it through the neural net, and
@@ -1342,7 +1349,7 @@ namespace Visionary
             // thread is owned by the doc and accepts a pointer to the doc as a parameter
 
 
-            MainForm pThis = pVoid;
+            MainForm pThis = (MainForm)pVoid;
 
             // set thread name (helps during debugging)
 
@@ -1386,7 +1393,7 @@ namespace Visionary
                 {
                     // training set
 
-                    iPatNum = pThis.GetNextTrainingPattern(grayLevels, label, true, false, iSequentialNum);
+                    iPatNum = pThis.GetNextTrainingPattern(grayLevels, label, true, false, out iSequentialNum);
 
                     // post message to the dialog, telling it which pattern this thread is currently working on
 
@@ -1483,9 +1490,9 @@ namespace Visionary
                     // this gives 2^7 = 128 possible outputs (only 10 are needed here... future expansion??)
                     // and 2^18 = 262144 possible pattern numbers ( only 10000 are needed here )
 
-                    code = (iPatNum & 0x0003FFFF);
-                    code |= (label & 0x0000007F) << 18;
-                    code |= (iBestIndex & 0x0000007F) << 25;
+                    //code = (iPatNum & 0x0003FFFF);
+                    //code |= (label & 0x0000007F) << 18;
+                    //code |= (iBestIndex & 0x0000007F) << 25;
 
                     if (true)// pThis.m_hWndForTestingPosting != null )
                     {
@@ -1506,10 +1513,6 @@ namespace Visionary
             {
                 //::PostMessage( pThis.m_hWndForTestingPosting, UWM_TESTING_NOTIFICATION, 4L, (LPARAM)scaledMSE );
             }
-
-            return 0L;
-
         }
-
     }
 }

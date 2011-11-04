@@ -1,42 +1,122 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Neuron.cs" company="">
+//   
+// </copyright>
+// <summary>
+//   The neuron.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace Visionary.ConvolutionalNeuralNetwork
 {
+    using System;
+    using System.Collections.Generic;
+
+    /// <summary>
+    /// The neuron.
+    /// </summary>
     public class Neuron
     {
+        #region Constants and Fields
+
+        /// <summary>
+        /// The connections.
+        /// </summary>
+        private List<Connection> connections = new List<Connection>();
+
+        /// <summary>
+        /// The label.
+        /// </summary>
+        private string label = string.Empty;
+
+        #endregion
+
+        #region Constructors and Destructors
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Neuron"/> class.
+        /// </summary>
         public Neuron()
         {
-
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Neuron"/> class.
+        /// </summary>
+        /// <param name="str">
+        /// The str.
+        /// </param>
         public Neuron(string str)
         {
-            label = str;
+            this.label = str;
         }
 
-        public  void AddConnection(uint iNeuron, uint iWeight)
+        #endregion
+
+        #region Public Properties
+
+        /// <summary>
+        /// Gets or sets Connections.
+        /// </summary>
+        public List<Connection> Connections
         {
-            m_Connections.Add(new Connection(iNeuron, iWeight));
+            get
+            {
+                return this.connections;
+            }
+
+            set
+            {
+                this.connections = value;
+            }
         }
 
-        public void AddConnection(Connection conn)
+        /// <summary>
+        /// Gets or sets Output.
+        /// </summary>
+        public double Output { get; set; }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// The add connection.
+        /// </summary>
+        /// <param name="neuronIndex">
+        /// The neuron index.
+        /// </param>
+        /// <param name="weightIndex">
+        /// The weight index.
+        /// </param>
+        public void AddConnection(uint neuronIndex, uint weightIndex)
         {
-            m_Connections.Add(conn);
+            this.connections.Add(new Connection(neuronIndex, weightIndex));
         }
 
-
-        string label = String.Empty;
-        public double output = 0.0;
-
-        public List<Connection> m_Connections = new List<Connection>();
-
-        ///	VectorWeights m_Weights;
-        ///	VectorNeurons m_Neurons;
-
-        void Initialize()
+        /// <summary>
+        /// The add connection.
+        /// </summary>
+        /// <param name="connection">
+        /// The connection.
+        /// </param>
+        public void AddConnection(Connection connection)
         {
-            m_Connections.Clear();
+            this.connections.Add(connection);
         }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// The initialize.
+        /// </summary>
+        private void Initialize()
+        {
+            this.connections.Clear();
+        }
+
+        #endregion
     }
 }

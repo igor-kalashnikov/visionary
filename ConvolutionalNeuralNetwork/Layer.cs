@@ -1,277 +1,406 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Layer.cs" company="">
+//   
+// </copyright>
+// <summary>
+//   Class represents layer in neural network. Contains neurons and weights.
+// </summary>
+// --------------------------------------------------------------------------------------------------------------------
 
 namespace Visionary.ConvolutionalNeuralNetwork
 {
-	using System.Threading;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
 
+    /// <summary>
+    /// Class represents layer in neural network. Contains neurons and weights.
+    /// </summary>
     public class Layer
-	{
-		public void PeriodicWeightSanityCheck()
-		{
-			foreach (var weight in m_Weights)
-			{
-				double val = Math.Abs(weight.value);
+    {
+        #region Constants and Fields
 
-				if ((val > 100.0) && (m_bFloatingPointWarning == false))
-				{
-					// 100.0 is an arbitrary value, that no reasonable weight should ever exceed
+        /// <summary>
+        /// The m_b floating point warning.
+        /// </summary>
+        public bool m_bFloatingPointWarning;
+                    // flag for one-time warning (per layer) about potential floating point overflow
 
-					//string strMess;
-					//strMess.Format( _T( "Caution: Weights are becoming unboundedly large \n" )
-					//    _T( "Layer: %s \nWeight: %s \nWeight value = %g \nWeight Hessian = %g\n\n" )
-					//    _T( "Suggest abandoning this backpropagation and investigating" ),
-					//    label.c_str(), ww.label.c_str(), ww.value, ww.diagHessian );
+        /// <summary>
+        /// The label.
+        /// </summary>
+        private string label = string.Empty;
 
-					//::MessageBox( NULL, strMess, _T( "Problem With Weights" ), MB_ICONEXCLAMATION | MB_OK );
+        /// <summary>
+        /// The m_ neurons.
+        /// </summary>
+        private List<Neuron> neurons = new List<Neuron>();
 
-					m_bFloatingPointWarning = true;
-				}
-			}
-		}
+        /// <summary>
+        /// The m_ weights.
+        /// </summary>
+        private List<Weight> weights = new List<Weight>();
 
-		public void Calculate()
-		{
-			foreach (var neuron in m_Neurons)
-			{
-				double dSum = m_Weights[(int)neuron.m_Connections[0].WeightIndex].value
-					   + neuron.m_Connections
-							.Skip(1)
-							.Sum(connection => m_Weights[(int)connection.WeightIndex].value
-													* m_pPrevLayer.m_Neurons[(int)connection.NeuronIndex].output);
+        /// <summary>
+        /// The previous layer of neural network.
+        /// </summary>
+        private Layer previousLayer;
 
-				neuron.output = Utils.SIGMOID(dSum);
-			}
-		}
+        #endregion
 
-		public void Backpropagate(
-			List<double> dErr_wrt_dXn /* in */,
-			List<double> dErr_wrt_dXnm1 /* out */,
-			List<double> thisLayerOutput,
-			List<double> prevLayerOutput,
-			double etaLearningRate)
-		{
-			int ii, jj;
-			uint kk;
-			int nIndex;
-			double output;
+        #region Constructors and Destructors
 
-			List<double> dErr_wrt_dYn = new List<double>(m_Neurons.Count);
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Layer"/> class.
+        /// </summary>
+        public Layer()
+        {
+        }
 
-			double[] dErr_wrt_dWn = new double[4 * m_Weights.Count]; // _alloca( sizeof(double) *  m_Weights.size() ) ];
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Layer"/> class.
+        /// </summary>
+        /// <param name="str">
+        /// The str.
+        /// </param>
+        /// <param name="pPrev">
+        /// The p prev.
+        /// </param>
+        public Layer(string str, Layer pPrev = null)
+        {
+            this.label = str;
+            this.previousLayer = pPrev;
+        }
 
-			for (ii = 0; ii < m_Weights.Count; ++ii)
-			{
-				dErr_wrt_dWn[ii] = 0.0;
-			}
+        #endregion
 
-			bool memorized = thisLayerOutput != null && prevLayerOutput != null;
+        #region Public Properties
 
+        /// <summary>
+        /// Gets or sets Label.
+        /// </summary>
+        public string Label
+        {
+            get
+            {
+                return this.label;
+            }
 
-			for (ii = 0; ii < m_Neurons.Count; ++ii)
-			{
-				output = memorized ? thisLayerOutput[ii] : this.m_Neurons[ii].output;
+            set
+            {
+                this.label = value;
+            }
+        }
 
-				dErr_wrt_dYn[ii] = Utils.DSIGMOID(output) * dErr_wrt_dXn[ii];
-			}
-
-			ii = 0;
-			foreach (var neuron in m_Neurons)
-			{
-				foreach (var connection in neuron.m_Connections)
-				{
-					kk = connection.NeuronIndex;
-					if (kk == UInt32.MaxValue)
-					{
-						output = 1.0;  // this is the bias weight
-					}
-					else
-					{
-						output = memorized != false ? prevLayerOutput[(int)kk] : this.m_pPrevLayer.m_Neurons[(int)kk].output;
-					}
-
-					dErr_wrt_dWn[connection.WeightIndex] += dErr_wrt_dYn[ii] * output;
-				}
-
-				ii++;
-			}
-
-
-			// calculate dErr_wrt_Xnm1 = Wn * dErr_wrt_dYn, which is needed as the input value of
-			// dErr_wrt_Xn for backpropagation of the next (i.e., previous) layer
-			// For each neuron in this layer
-
-			foreach (var neuron in m_Neurons)
-			{
-				foreach (var connection in neuron.m_Connections)
-				{
-					kk = connection.NeuronIndex;
-					if (kk != UInt32.MaxValue)
-					{
-						nIndex = (int)kk;
-						dErr_wrt_dXnm1[nIndex] += dErr_wrt_dYn[ii] * m_Weights[(int)connection.WeightIndex].value;
-					}
-				}
-			}
-
-			double dMicron = 0.1; //TODO ::GetPreferences().m_dMicronLimitParameter;
-
-			for (jj = 0; jj < m_Weights.Count; ++jj)
-			{
-				double divisor = this.m_Weights[jj].diagHessian + dMicron;
-
-				double epsilon = etaLearningRate / divisor;
-				double oldValue = this.m_Weights[jj].value;
-				double newValue = oldValue - epsilon * dErr_wrt_dWn[jj];
-
-				while (oldValue != Interlocked.CompareExchange(ref m_Weights[jj].value, newValue, oldValue))
-				{
-					// another thread must have modified the weight.  Obtain its new value, adjust it, and try again
-					oldValue = m_Weights[jj].value;
-					newValue = oldValue - epsilon * dErr_wrt_dWn[jj];
-				}
-			}
-		}
-
-		public void EraseHessianInformation()
-		{
-			foreach (var weight in m_Weights)
-			{
-				weight.diagHessian = 0.0;
-			}
-		}
-
-		public void DivideHessianInformationBy(double divisor)
-		{
-
-
-		}
-
-		public void BackpropagateSecondDerivatives(
-			List<double> d2Err_wrt_dXn /* in */,
-			List<double> d2Err_wrt_dXnm1 /* out */)
-		{
-			int ii, jj;
-			uint kk;
-			int nIndex;
-			double output;
-			double dTemp;
-
-			List<double> d2Err_wrt_dYn = new List<double>(m_Neurons.Count);
-
-			double[] d2Err_wrt_dWn = new double[sizeof(double) * m_Weights.Count];
-
-			for (ii = 0; ii < m_Weights.Count; ++ii)
-			{
-				d2Err_wrt_dWn[ii] = 0.0;
-			}
-
-			for (ii = 0; ii < m_Neurons.Count; ++ii)
-			{
-				output = m_Neurons[ii].output;
-
-				dTemp = Utils.DSIGMOID(output);
-				d2Err_wrt_dYn[ii] = d2Err_wrt_dXn[ii] * dTemp * dTemp;
-			}
-
-			ii = 0;
-			foreach (var neuron in m_Neurons)
-			{
-				foreach (var connection in neuron.m_Connections)
-				{
-					kk = connection.NeuronIndex;
-					output = kk == UInt32.MaxValue ? 1.0 : this.m_pPrevLayer.m_Neurons[(int)kk].output;
-					d2Err_wrt_dWn[connection.WeightIndex] += d2Err_wrt_dYn[ii] * output * output;
-				}
-
-				ii++;
-			}
-
-			ii = 0;
-			foreach (var neuron in m_Neurons)
-			{
-				foreach (var connection in neuron.m_Connections)
-				{
-					kk = connection.NeuronIndex;
-					if (kk != UInt32.MaxValue)
-					{
-						nIndex = (int)kk;
-
-						dTemp = m_Weights[(int)connection.WeightIndex].value;
-						d2Err_wrt_dXnm1[nIndex] += d2Err_wrt_dYn[ii] * dTemp * dTemp;
-					}
-
-				}
-
-				ii++;
-			}
-
-			for (jj = 0; jj < m_Weights.Count; ++jj)
-			{
-				double oldValue = this.m_Weights[jj].diagHessian;
-				double newValue = oldValue + d2Err_wrt_dWn[jj];
-
-				while (oldValue != Interlocked.CompareExchange(ref m_Weights[jj].diagHessian, newValue, oldValue))
-				{
-					oldValue = m_Weights[jj].diagHessian;
-					newValue = oldValue + d2Err_wrt_dWn[jj];
-				}
-			}
-		}
-
-		// void Serialize(CArchive& ar );
-
-		public Layer()
-		{
-
-		}
-
-		public Layer(string str, Layer pPrev = null)
-		{
-			label = str;
-			m_pPrevLayer = pPrev;
-		}
-
-        private List<Weight> m_Weights = new List<Weight>();
-
-        private List<Neuron> m_Neurons = new List<Neuron>();
-
-		public string label = String.Empty;
-
-		public Layer m_pPrevLayer = null;
-
-		public bool m_bFloatingPointWarning; // flag for one-time warning (per layer) about potential floating point overflow
-
-		public void Initialize()
-		{
-			m_Weights.Clear();
-			m_Neurons.Clear();
-			m_bFloatingPointWarning = false;
-		}
-
+        /// <summary>
+        /// Gets or sets Neurons.
+        /// </summary>
         public List<Neuron> Neurons
         {
             get
             {
-                return this.m_Neurons;
+                return this.neurons;
             }
+
             set
             {
-                this.m_Neurons = value;
+                this.neurons = value;
             }
         }
 
+        /// <summary>
+        /// Gets or sets PreviousLayer.
+        /// </summary>
+        public Layer PreviousLayer
+        {
+            get
+            {
+                return this.previousLayer;
+            }
+
+            set
+            {
+                this.previousLayer = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets Weights.
+        /// </summary>
         public List<Weight> Weights
         {
             get
             {
-                return this.m_Weights;
+                return this.weights;
             }
+
             set
             {
-                this.m_Weights = value;
+                this.weights = value;
             }
         }
-	}
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// The backpropagate.
+        /// </summary>
+        /// <param name="dErr_wrt_dXn">
+        /// The d err_wrt_d xn.
+        /// </param>
+        /// <param name="dErr_wrt_dXnm1">
+        /// The d err_wrt_d xnm 1.
+        /// </param>
+        /// <param name="thisLayerOutput">
+        /// This layer output.
+        /// </param>
+        /// <param name="prevLayerOutput">
+        /// The previous layer output.
+        /// </param>
+        /// <param name="etaLearningRate">
+        /// The eta learning rate.
+        /// </param>
+        public void Backpropagate(
+            double[] dErr_wrt_dXn /* in */,
+            double[] dErr_wrt_dXnm1 /* out */,
+            List<double> thisLayerOutput,
+            List<double> prevLayerOutput, 
+            double etaLearningRate)
+        {
+            int ii, jj;
+            uint kk;
+            double output;
+
+            var dErr_wrt_dYn = new double[this.neurons.Count];
+
+            var dErr_wrt_dWn = new double[sizeof(double) * this.weights.Count];
+                
+                // _alloca( sizeof(double) *  weights.size() ) ];
+            for (ii = 0; ii < this.weights.Count; ++ii)
+            {
+                dErr_wrt_dWn[ii] = 0.0;
+            }
+
+            bool memorized = thisLayerOutput != null && prevLayerOutput != null;
+
+            for (ii = 0; ii < this.neurons.Count; ++ii)
+            {
+                output = memorized ? thisLayerOutput[ii] : this.neurons[ii].Output;
+                dErr_wrt_dYn[ii] = Utils.SigmoidDerivative(output) * dErr_wrt_dXn[ii];
+            }
+
+            ii = 0;
+            foreach (Neuron neuron in this.neurons)
+            {
+                foreach (Connection connection in neuron.Connections)
+                {
+                    kk = connection.NeuronIndex;
+                    if (kk == uint.MaxValue)
+                    {
+                        output = 1.0; // this is the bias weight
+                    }
+                    else
+                    {
+                        output = memorized ? prevLayerOutput[(int)kk] : this.previousLayer.neurons[(int)kk].Output;
+                    }
+
+                    dErr_wrt_dWn[connection.WeightIndex] += dErr_wrt_dYn[ii] * output;
+                }
+
+                ii++;
+            }
+
+            // calculate dErr_wrt_Xnm1 = Wn * dErr_wrt_dYn, which is needed as the input value of
+            // dErr_wrt_Xn for backpropagation of the next (i.e., previous) layer
+            // For each neuron in this layer
+            ii = 0;
+            foreach (Neuron neuron in this.neurons)
+            {
+                foreach (Connection connection in neuron.Connections)
+                {
+                    kk = connection.NeuronIndex;
+                    if (kk != uint.MaxValue)
+                    {
+                        var nIndex = (int)kk;
+                        dErr_wrt_dXnm1[nIndex] += dErr_wrt_dYn[ii] * this.weights[(int)connection.WeightIndex].value;
+                    }
+                }
+            }
+
+            double dMicron = 0.1; // TODO ::GetPreferences().m_dMicronLimitParameter;
+
+            for (jj = 0; jj < this.weights.Count; ++jj)
+            {
+                double divisor = this.weights[jj].diagHessian + dMicron;
+                double epsilon = etaLearningRate / divisor;
+                double oldValue = this.weights[jj].value;
+                double newValue = oldValue - epsilon * dErr_wrt_dWn[jj];
+
+                while (oldValue != Interlocked.CompareExchange(ref this.weights[jj].value, newValue, oldValue))
+                {
+                    // another thread must have modified the weight.  Obtain its new value, adjust it, and try again
+                    oldValue = this.weights[jj].value;
+                    newValue = oldValue - epsilon * dErr_wrt_dWn[jj];
+                }
+            }
+        }
+
+        /// <summary>
+        /// The backpropagate second derivatives.
+        /// </summary>
+        /// <param name="d2Err_wrt_dXn">
+        /// The d 2 err_wrt_d xn.
+        /// </param>
+        /// <param name="d2Err_wrt_dXnm1">
+        /// The d 2 err_wrt_d xnm 1.
+        /// </param>
+        public void BackpropagateSecondDerivatives(
+            List<double> d2Err_wrt_dXn /* in */, List<double> d2Err_wrt_dXnm1 /* out */)
+        {
+            int ii, jj;
+            uint kk;
+            int nIndex;
+            double output;
+            double dTemp;
+
+            var d2Err_wrt_dYn = new List<double>(this.neurons.Count);
+
+            var d2Err_wrt_dWn = new double[sizeof(double) * this.weights.Count];
+
+            for (ii = 0; ii < this.weights.Count; ++ii)
+            {
+                d2Err_wrt_dWn[ii] = 0.0;
+            }
+
+            for (ii = 0; ii < this.neurons.Count; ++ii)
+            {
+                output = this.neurons[ii].Output;
+
+                dTemp = Utils.SigmoidDerivative(output);
+                d2Err_wrt_dYn[ii] = d2Err_wrt_dXn[ii] * dTemp * dTemp;
+            }
+
+            ii = 0;
+            foreach (Neuron neuron in this.neurons)
+            {
+                foreach (Connection connection in neuron.Connections)
+                {
+                    kk = connection.NeuronIndex;
+                    output = kk == uint.MaxValue ? 1.0 : this.previousLayer.neurons[(int)kk].Output;
+                    d2Err_wrt_dWn[connection.WeightIndex] += d2Err_wrt_dYn[ii] * output * output;
+                }
+
+                ii++;
+            }
+
+            ii = 0;
+            foreach (Neuron neuron in this.neurons)
+            {
+                foreach (Connection connection in neuron.Connections)
+                {
+                    kk = connection.NeuronIndex;
+                    if (kk != uint.MaxValue)
+                    {
+                        nIndex = (int)kk;
+
+                        dTemp = this.weights[(int)connection.WeightIndex].value;
+                        d2Err_wrt_dXnm1[nIndex] += d2Err_wrt_dYn[ii] * dTemp * dTemp;
+                    }
+                }
+
+                ii++;
+            }
+
+            for (jj = 0; jj < this.weights.Count; ++jj)
+            {
+                double oldValue = this.weights[jj].diagHessian;
+                double newValue = oldValue + d2Err_wrt_dWn[jj];
+
+                while (oldValue != Interlocked.CompareExchange(ref this.weights[jj].diagHessian, newValue, oldValue))
+                {
+                    oldValue = this.weights[jj].diagHessian;
+                    newValue = oldValue + d2Err_wrt_dWn[jj];
+                }
+            }
+        }
+
+        /// <summary>
+        /// The calculate.
+        /// </summary>
+        public void Calculate()
+        {
+            foreach (Neuron neuron in this.neurons)
+            {
+                double dSum = this.weights[(int)neuron.Connections[0].WeightIndex].value
+                              +
+                              neuron.Connections.Skip(1).Sum(
+                                  connection =>
+                                  this.weights[(int)connection.WeightIndex].value
+                                  * this.previousLayer.neurons[(int)connection.NeuronIndex].Output);
+
+                neuron.Output = Utils.Sigmoid(dSum);
+            }
+        }
+
+        /// <summary>
+        /// The divide hessian information by.
+        /// </summary>
+        /// <param name="divisor">
+        /// The divisor.
+        /// </param>
+        public void DivideHessianInformationBy(double divisor)
+        {
+        }
+
+        /// <summary>
+        /// The erase hessian information.
+        /// </summary>
+        public void EraseHessianInformation()
+        {
+            foreach (Weight weight in this.weights)
+            {
+                weight.diagHessian = 0.0;
+            }
+        }
+
+        /// <summary>
+        /// The initialize.
+        /// </summary>
+        public void Initialize()
+        {
+            this.weights.Clear();
+            this.neurons.Clear();
+            this.m_bFloatingPointWarning = false;
+        }
+
+        /// <summary>
+        /// The periodic weight sanity check.
+        /// </summary>
+        public void PeriodicWeightSanityCheck()
+        {
+            foreach (Weight weight in this.weights)
+            {
+                double val = Math.Abs(weight.value);
+
+                if ((val > 100.0) && (this.m_bFloatingPointWarning == false))
+                {
+                    // 100.0 is an arbitrary value, that no reasonable weight should ever exceed
+
+                    // string strMess;
+                    // strMess.Format( _T( "Caution: Weights are becoming unboundedly large \n" )
+                    // _T( "Layer: %s \nWeight: %s \nWeight value = %g \nWeight Hessian = %g\n\n" )
+                    // _T( "Suggest abandoning this backpropagation and investigating" ),
+                    // label.c_str(), ww.label.c_str(), ww.value, ww.diagHessian );
+
+                    // ::MessageBox( NULL, strMess, _T( "Problem With Weights" ), MB_ICONEXCLAMATION | MB_OK );
+                    this.m_bFloatingPointWarning = true;
+                }
+            }
+        }
+
+        #endregion
+    }
 }

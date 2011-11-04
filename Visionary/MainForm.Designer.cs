@@ -63,6 +63,7 @@
             this.mainTabControl = new System.Windows.Forms.TabControl();
             this.Images = new System.Windows.Forms.TabPage();
             this.Network = new System.Windows.Forms.TabPage();
+            this.button1 = new System.Windows.Forms.Button();
             this.Test = new System.Windows.Forms.TabPage();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.newToolStripButton = new System.Windows.Forms.ToolStripButton();
@@ -75,13 +76,17 @@
             this.pasteToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
             this.helpToolStripButton = new System.Windows.Forms.ToolStripButton();
-            this.button1 = new System.Windows.Forms.Button();
+            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.button2 = new System.Windows.Forms.Button();
+            this.button3 = new System.Windows.Forms.Button();
+            this.button4 = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
             this.toolStripContainer1.TopToolStripPanel.SuspendLayout();
             this.toolStripContainer1.SuspendLayout();
             this.mainTabControl.SuspendLayout();
             this.Network.SuspendLayout();
+            this.Test.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -326,11 +331,11 @@
             // toolStripContainer1.ContentPanel
             // 
             this.toolStripContainer1.ContentPanel.Controls.Add(this.mainTabControl);
-            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(791, 495);
+            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(791, 519);
             this.toolStripContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.toolStripContainer1.Location = new System.Drawing.Point(0, 24);
             this.toolStripContainer1.Name = "toolStripContainer1";
-            this.toolStripContainer1.Size = new System.Drawing.Size(791, 520);
+            this.toolStripContainer1.Size = new System.Drawing.Size(791, 544);
             this.toolStripContainer1.TabIndex = 1;
             this.toolStripContainer1.Text = "toolStripContainer1";
             // 
@@ -347,7 +352,7 @@
             this.mainTabControl.Location = new System.Drawing.Point(0, 0);
             this.mainTabControl.Name = "mainTabControl";
             this.mainTabControl.SelectedIndex = 0;
-            this.mainTabControl.Size = new System.Drawing.Size(791, 495);
+            this.mainTabControl.Size = new System.Drawing.Size(791, 519);
             this.mainTabControl.TabIndex = 0;
             // 
             // Images
@@ -362,20 +367,34 @@
             // 
             // Network
             // 
+            this.Network.Controls.Add(this.button4);
             this.Network.Controls.Add(this.button1);
             this.Network.Location = new System.Drawing.Point(4, 22);
             this.Network.Name = "Network";
             this.Network.Padding = new System.Windows.Forms.Padding(3);
-            this.Network.Size = new System.Drawing.Size(783, 469);
+            this.Network.Size = new System.Drawing.Size(783, 493);
             this.Network.TabIndex = 1;
             this.Network.Text = "Network";
             this.Network.UseVisualStyleBackColor = true;
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(8, 462);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(136, 23);
+            this.button1.TabIndex = 0;
+            this.button1.Text = "Start backpropagation";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // Test
             // 
+            this.Test.Controls.Add(this.button3);
+            this.Test.Controls.Add(this.button2);
+            this.Test.Controls.Add(this.richTextBox1);
             this.Test.Location = new System.Drawing.Point(4, 22);
             this.Test.Name = "Test";
-            this.Test.Size = new System.Drawing.Size(783, 469);
+            this.Test.Size = new System.Drawing.Size(783, 444);
             this.Test.TabIndex = 2;
             this.Test.Text = "Test";
             this.Test.UseVisualStyleBackColor = true;
@@ -481,21 +500,47 @@
             this.helpToolStripButton.Size = new System.Drawing.Size(23, 22);
             this.helpToolStripButton.Text = "He&lp";
             // 
-            // button1
+            // richTextBox1
             // 
-            this.button1.Location = new System.Drawing.Point(6, 440);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(136, 23);
-            this.button1.TabIndex = 0;
-            this.button1.Text = "Start backpropagation";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.richTextBox1.Location = new System.Drawing.Point(8, 4);
+            this.richTextBox1.Name = "richTextBox1";
+            this.richTextBox1.ReadOnly = true;
+            this.richTextBox1.Size = new System.Drawing.Size(767, 398);
+            this.richTextBox1.TabIndex = 0;
+            this.richTextBox1.Text = "";
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(8, 408);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.TabIndex = 1;
+            this.button2.Text = "Start";
+            this.button2.UseVisualStyleBackColor = true;
+            // 
+            // button3
+            // 
+            this.button3.Location = new System.Drawing.Point(89, 408);
+            this.button3.Name = "button3";
+            this.button3.Size = new System.Drawing.Size(75, 23);
+            this.button3.TabIndex = 2;
+            this.button3.Text = "Stop";
+            this.button3.UseVisualStyleBackColor = true;
+            // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(150, 462);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(131, 23);
+            this.button4.TabIndex = 1;
+            this.button4.Text = "Stop backpropagation";
+            this.button4.UseVisualStyleBackColor = true;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(791, 544);
+            this.ClientSize = new System.Drawing.Size(791, 568);
             this.Controls.Add(this.toolStripContainer1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
@@ -510,6 +555,7 @@
             this.toolStripContainer1.PerformLayout();
             this.mainTabControl.ResumeLayout(false);
             this.Network.ResumeLayout(false);
+            this.Test.ResumeLayout(false);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -566,6 +612,10 @@
         private System.Windows.Forms.TabPage Network;
         private System.Windows.Forms.TabPage Test;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.Button button4;
     }
 }
 
